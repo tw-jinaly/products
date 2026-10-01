@@ -1,13 +1,25 @@
+export interface AppErrorOptions extends ErrorOptions {
+  statusCode?: number;
+  isOperational?: boolean;
+}
+
 export class AppError extends Error {
   public readonly statusCode: number;
-  public readonly isOprational: boolean;
+  public readonly isOperational: boolean;
 
-  constructor(message: string, statusCode: number = 500) {
-    super(message);
+  constructor(message: string, options?: number | AppErrorOptions) {
+    const resolvedOptions: AppErrorOptions =
+      typeof options === "number" ? { statusCode: options } : options ?? {};
 
-    this.statusCode = statusCode;
-    this.isOprational = true;
+    super(message, { cause: resolvedOptions.cause });
 
-    Error.captureStackTrace(this, this.constructor);
+    this.name = this.constructor.name;
+
+    this.statusCode = resolvedOptions.statusCode ?? 500;
+    this.isOperational = resolvedOptions.isOperational ?? true;
+
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, this.constructor);
+    }
   }
 }

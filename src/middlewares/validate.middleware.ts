@@ -1,34 +1,18 @@
-import { NextFunction, Response, Request } from "express";
-import z, { ZodError } from "zod";
+import { Request, Response, NextFunction } from "express";
+import { ZodType } from "zod";
 
-export const validate = (schema: z.ZodType) => {
-  return (req: Request, res: Response, next: NextFunction): void => {
-    const result = schema.safeParse({
-      body: req.body,
-      query: req.query,
-      params: req.params,
-    });
+type ValidationTarget = "body" | "query" | "params";
+
+export const validate =
+  (schema: ZodType, target: ValidationTarget = "body") =>
+  async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
+    const result = await schema.safeParseAsync(req[target]);
 
     if (!result.success) {
-      const error = result.error as ZodError;
-      const issues = error.issues.map((issue) => ({
-        field: issue.path.slice(1).join("."),
-        message: issue.message,
-      }));
-
-      res.status(400).json({
-        status: "fail",
-        message: "Invalid input data",
-        errors: issues,
-      });
+      next(result.error);
       return;
     }
 
-    const data = result.data as Record<string, any>;
-    if (data.body) req.body = data.body;
-    if (data.query) req.query = data.query;
-    if (data.params) req.params = data.params;
-
+    req[target] = result.data;
     next();
   };
-};

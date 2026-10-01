@@ -1,43 +1,111 @@
 import { AppError } from "../../errors/appError.js";
-import { CreateProductInput } from "../validations/product.validation.js";
+import { IProduct, ProductModel } from "../../models/product.model.js";
+import {
+  CreateProductInput,
+  GetProductsQueryInput,
+  UpdateProductInput,
+} from "../validations/product.validation.js";
+import {
+  PaginatedResult,
+  buildPaginationMetadata,
+} from "../../common/pagination.schema.js";
 
-export interface Product {
-  id: string;
-  name: string;
-  price: number;
-  stock: number;
+interface ProductFilter {
+  isDeleted?: boolean;
+  price?: {
+    $gte?: number;
+    $lte?: number;
+  };
+  name?: {
+    $regex: string;
+    $options: string;
+  };
+  [key: string]: unknown;
 }
 
-const productStore: Product[] = [
-  { id: "1", name: "Mechanical keyborad", price: 120, stock: 15 },
-  { id: "2", name: "wirless mouse", price: 60, stock: 30 },
-  { id: "3", name: "4k monitor", price: 400, stock: 5 },
-];
+export const getAllProducts = async (
+  filters: GetProductsQueryInput
+): Promise<PaginatedResult<IProduct>> => {
+  const mongoFilter: ProductFilter = {};
 
-export class ProductService {
-  public static async getAllProducts(): Promise<Product[]> {
-    return productStore;
-  }
-
-  public static async getProductById(id: string): Promise<Product> {
-    const product = productStore.find((p) => p.id === id);
-    if (!product) {
-      throw new AppError(`Product with ID ${id} not found`, 404);
+  if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
+    mongoFilter.price = {};
+    if (filters.minPrice !== undefined) {
+      mongoFilter.price.$gte = filters.minPrice;
     }
-    return product;
+    if (filters.maxPrice !== undefined) {
+      mongoFilter.price.$lte = filters.maxPrice;
+    }
   }
 
-  public static async createProduct(
-    data: CreateProductInput
-  ): Promise<Product> {
-    const newProduct: Product = {
-      id: (productStore.length + 1).toString(),
-      name: data.name,
-      price: data.price,
-      stock: data.stock,
-    };
-
-    productStore.push(newProduct);
-    return newProduct;
+  if (filters.search) {
+    mongoFilter.name = { $regex: filters.search, $options: "i" };
   }
-}
+
+  const skip = (filters.page - 1) * filters.limit;
+
+  const [products, totalItems] = await Promise.all([
+    ProductModel.find(mongoFilter)
+      .sort(filters.sort)
+      .skip(skip)
+      .limit(filters.limit)
+      .lean(),
+    ProductModel.countDocuments(mongoFilter),
+  ]);
+
+  return {
+    data: products as unknown as IProduct[],
+    pagination: buildPaginationMetadata(
+      totalItems,
+      filters.page,
+      filters.limit
+    ),
+  };
+};
+
+export const getProductById = async (id: string): Promise<IProduct> => {
+  const product = await ProductModel.findById(id).lean();
+
+  if (!product) {
+    throw new AppError(`Product with ID '${id}' not found`, 404);
+  }
+
+  return product as unknown as IProduct;
+};
+
+export const createProduct = async (
+  data: CreateProductInput
+): Promise<IProduct> => {
+  return await ProductModel.create({
+    name: data.name,
+    price: data.price,
+    stock: data.stock,
+  });
+};
+
+export const updateProduct = async (
+  id: string,
+  data: UpdateProductInput
+): Promise<IProduct> => {
+  const updatedProduct = await ProductModel.findOneAndUpdate(
+    { _id: id, isDeleted: false },
+    { $set: data },
+    { new: true, runValidators: true }
+  ).lean();
+
+  if (!updatedProduct) {
+    throw new AppError(`Product with ID '${id}' not found`, 404);
+  }
+
+  return updatedProduct as unknown as IProduct;
+};
+
+export const softDeleteProduct = async (id: string): Promise<void> => {
+  const result = await ProductModel.updateOne(
+    { _id: id, isDeleted: false },
+    { $set: { isDeleted: true, deletedAt: new Date() } }
+  );
+  if (result.matchedCount === 0) {
+    throw new AppError(`Product with ID '${id}' not found`, 404);
+  }
+};

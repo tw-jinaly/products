@@ -3,6 +3,8 @@ export interface IProduct extends Document {
   name: string;
   price: number;
   stock: number;
+  isDeleted: boolean;
+  deletedAt: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -25,6 +27,15 @@ const productSchema = new Schema<IProduct>(
       type: Number,
       required: [true, "Product stock is required"],
       min: [0, "Stock must be grater than zero"],
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
     },
   },
   {

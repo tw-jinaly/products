@@ -1,3 +1,11 @@
+process.on("uncaughtException", (error: Error) => {
+  console.error("Uncaight Exception:", error);
+  console.error(error.name, error.message);
+  console.error(error.stack);
+
+  process.exit(1);
+});
+
 import express, { Request, Response, NextFunction } from "express";
 import { asyncHandler } from "./utils/asyncHandler.js";
 import { AppError } from "./errors/appError.js";
@@ -8,11 +16,14 @@ import {
   connectDatabase,
   disconnectDatabase,
 } from "./config/database.config.js";
-import { disconnect } from "cluster";
+import { Server } from "http";
+import { corsMiddleware } from "./config/cors.config.js";
+import { generalApiLimiter } from "./middlewares/rateLimiter.middleware.js";
 
 const app = express();
+app.use(corsMiddleware);
 
-app.use(express.json());
+app.use(express.json({ limit: "10kb" }));
 
 app.get("/health", (_req: Request, res: Response) => {
   res.status(200).json({
@@ -21,6 +32,8 @@ app.get("/health", (_req: Request, res: Response) => {
     environment: env.NODE_ENV,
   });
 });
+
+app.use("/api", generalApiLimiter);
 
 app.use("/api/v1/products", productRouter);
 
@@ -42,9 +55,11 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
 
 app.use(errorHandler);
 
+let server: Server;
+
 const startServer = async () => {
   await connectDatabase();
-  const server = app.listen(env.PORT, () => {
+  server = app.listen(env.PORT, () => {
     console.log("Server running");
   });
 
@@ -61,6 +76,20 @@ const startServer = async () => {
 };
 
 startServer();
+
+process.on("unhandleRejection", (reason: unknown) => {
+  console.error("unhandled rejection");
+  console.error(reason);
+
+  if (server) {
+    server.close(async () => {
+      await disconnectDatabase();
+      process.exit(1);
+    });
+  } else {
+    process.exit(1);
+  }
+});
 
 // app.listen(env.PORT, () => {
 //   console.log(

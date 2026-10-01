@@ -1,9 +1,7 @@
-# Dependencies
 node_modules/
 .pnp
 .pnp.js
 
-# Environment variables & secrets (CRITICAL: never commit these)
 .env
 .env.local
 .env.*.local
@@ -11,13 +9,11 @@ node_modules/
 .env.test
 .env.production
 
-# Build outputs & caches
 dist/
 build/
 out/
 .tsbuildinfo
 
-# Runtime logs
 logs/
 *.log
 npm-debug.log*
@@ -26,12 +22,10 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Coverage directory used by testing tools (Jest, Vitest, etc.)
 coverage/
 *.lcov
 .nyc_output
 
-# Operating System files
 .DS_Store
 .DS_Store?
 ._*
@@ -40,7 +34,6 @@ coverage/
 ehthumbs.db
 Thumbs.db
 
-# IDE & Editor files
 .vscode/*
 !.vscode/settings.json
 !.vscode/extensions.json
