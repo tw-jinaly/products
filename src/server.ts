@@ -7,10 +7,12 @@ process.on("uncaughtException", (error: Error) => {
 });
 
 import express, { Request, Response, NextFunction } from "express";
+import cookieParser from "cookie-parser";
 import { asyncHandler } from "./utils/asyncHandler.js";
 import { AppError } from "./errors/appError.js";
 import { env } from "./config/env.config.js";
 import { errorHandler } from "./middlewares/error.middleware.js";
+import { authRouter } from "./api/routes/auth.routes.js";
 import { productRouter } from "./api/routes/product.routes.js";
 import {
   connectDatabase,
@@ -22,6 +24,7 @@ import { generalApiLimiter } from "./middlewares/rateLimiter.middleware.js";
 
 const app = express();
 app.use(corsMiddleware);
+app.use(cookieParser());
 
 app.use(express.json({ limit: "10kb" }));
 
@@ -35,6 +38,7 @@ app.get("/health", (_req: Request, res: Response) => {
 
 app.use("/api", generalApiLimiter);
 
+app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/products", productRouter);
 
 app.get(

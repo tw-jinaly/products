@@ -11,6 +11,7 @@ const envSchema = z.object({
   MONGO_URI: z
     .string({ message: "MONGO_URI is required" })
     .default("mongodb://localhost:27017/shopscale"),
+  GOOGLE_CLIENT_ID: z.string().optional().default(""),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);
