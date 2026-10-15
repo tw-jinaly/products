@@ -1,5 +1,5 @@
 process.on("uncaughtException", (error: Error) => {
-  console.error("Uncaight Exception:", error);
+  console.error("Uncaught Exception:", error);
   console.error(error.name, error.message);
   console.error(error.stack);
 
@@ -75,13 +75,13 @@ const startServer = async () => {
       process.exit(0);
     });
   };
-  process.on("SIGNIT", () => shutdown("SIGININT"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
   process.on("SIGTERM", () => shutdown("SIGTERM"));
 };
 
 startServer();
 
-process.on("unhandleRejection", (reason: unknown) => {
+process.on("unhandledRejection", (reason: unknown) => {
   console.error("unhandled rejection");
   console.error(reason);
 

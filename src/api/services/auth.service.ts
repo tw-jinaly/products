@@ -49,7 +49,7 @@ export const registerService = async (
 ): Promise<AuthResponse> => {
   const emailTaken = await UserModel.exists({ email: input.email });
   if (emailTaken) {
-    throw new AppError("An account ith this email lready exists", 409);
+    throw new AppError("An account with this email already exists", 409);
   }
 
   const hashPassword = await bcrypt.hash(input.password, BCRYPT_ROUNDS);

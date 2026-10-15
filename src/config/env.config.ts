@@ -12,6 +12,12 @@ const envSchema = z.object({
     .string({ message: "MONGO_URI is required" })
     .default("mongodb://localhost:27017/shopscale"),
   GOOGLE_CLIENT_ID: z.string().optional().default(""),
+  GOOGLE_CLIENT_SECRET: z.string().optional().default(""),
+  JWT_ACCESS_SECRET: z.string().default(""),
+  JWT_ACCESS_EXPIRES_IN: z.string().default("15m"),
+  JWT_REFRESH_SECRET: z.string().default(""),
+  JWT_REFRESH_EXPIRES_IN: z.string().default("7d"),
+  CLIENT_URL: z.string().default("http://localhost:5173"),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);
